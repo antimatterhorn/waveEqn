@@ -1,7 +1,7 @@
 # Looking at solving the 2D wave eqn as a precursor to an acoustics question
 # WED December  2, 2020
 
-N = 200  # number of points in each direction
+N = 100  # number of points in each direction
 finalCycle = 5000
 tgoal = 2.0
 
@@ -61,6 +61,7 @@ y, x = np.meshgrid(np.linspace(0, L, N+1), np.linspace(0, L, N+1))
 dt = .1*dx/c # this is a guess --- I have not done any analysis.  It
              # could be (dx/c)**2 or something even worse.
 phi = np.zeros([N+1, N+1])
+bounds = np.zeros([N+1,N+1])
 c2  = np.ones([N+1, N+1])*c2
 
 xi = np.zeros([N+1, N+1])
@@ -77,12 +78,33 @@ def init():
             if sqrt((x[i,j]-center)**2+(y[i,j]-center)**2) > radius:
                 c2[i,j]*=5.0
 
-
 # oscillating source
 def source(t):
     T = (L/5.0) / c  # period is such that wavelength is L/5
     w = 2 * pi / T   # angular frequency 
     return sin(w*t)
+
+class box:
+    def __init__(self,xmin,xmax):
+        self.xmin = xmin
+        self.xmax = xmax
+    def addBounds(self):
+        for i in range(N+1):
+            for j in range(N+1):
+                xmin = self.xmin
+                xmax = self.xmax
+                if x[i,j] > xmin[0] and x[i,j] < xmax[0] and y[i,j] > xmin[1] and y[i,j] < xmax[1]:
+                    bounds[i,j] = 1.0
+        return
+    def removeBounds(self):
+        for i in range(N+1):
+            for j in range(N+1):
+                xmin = self.xmin
+                xmax = self.xmax
+                if x[i,j] > xmin[0] and x[i,j] < xmax[0] and y[i,j] > xmin[1] and y[i,j] < xmax[1]:
+                    bounds[i,j] = 0.0
+        return
+
 
 del2phi = np.zeros([N+1,N+1])
 
@@ -109,7 +131,26 @@ def applyBoundaries():
     phi[0,0:N+1]    = phi[1,0:N+1]
     phi[N,0:N+1]    = phi[N-1,0:N+1] 
 
-init()
+    for i in range(1,N):
+        for j in range(1,N):
+            if bounds[i,j] == 1.0:
+                # get max phi from all adjacent cells that are not bounds
+                left = (1.0-bounds[i-1,j])*phi[i-1,j]
+                right = (1.0-bounds[i+1,j])*phi[i+1,j]
+                up = (1.0-bounds[i,j+1])*phi[i,j+1]
+                down = (1.0-bounds[i,j-1])*phi[i,j-1]
+                phimax = max(max(left,right),max(up,down))
+                phi[i,j] = phimax
+
+box1 = box((0.2,0.2),(0.8,0.8))
+box1.addBounds()
+box2 = box((0.25,0.25),(0.75,0.75))
+box2.removeBounds()
+box3 = box((0.2,0.45),(0.25,0.55))
+box3.removeBounds()
+print(bounds)
+
+#init()
     
 while cycle < finalCycle and t < tgoal:
     # compute del^2 phi

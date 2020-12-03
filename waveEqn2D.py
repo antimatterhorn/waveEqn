@@ -142,15 +142,6 @@ if animate:
     plt.show(block=False)
     plt.pause(0.2)
 
-def largestDevation(nums):
-    lg = 0
-    sgn = 0
-    for num in nums:
-        if abs(num) > lg:
-            lg = abs(num)
-            sgn = sign(num)
-    return lg*sgn
-
 def applyBoundaries():
     # reflecting wall boundary conditions everywhere
     phi[0:N+1,0]    = phi[0:N+1,1]

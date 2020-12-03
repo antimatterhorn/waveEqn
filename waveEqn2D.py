@@ -105,6 +105,24 @@ class box:
                     bounds[i,j] = 0.0
         return
 
+class circle:
+    def __init__(self,center,radius):
+        self.radius = radius
+        self.center = center
+    def addBounds(self):
+        for i in range(N+1):
+            for j in range(N+1):
+                r2 = (x[i,j]-self.center[0])**2+(y[i,j]-self.center[1])**2
+                if r2 < self.radius**2:
+                    bounds[i,j] = 1.0
+        return
+    def removeBounds(self):
+        for i in range(N+1):
+            for j in range(N+1):
+                r2 = (x[i,j]-self.center[0])**2+(y[i,j]-self.center[1])**2
+                if r2 < self.radius**2:
+                    bounds[i,j] = 0.0
+        return
 
 del2phi = np.zeros([N+1,N+1])
 
@@ -123,7 +141,16 @@ if animate:
     # make sure window is on the screen and drawn
     plt.show(block=False)
     plt.pause(0.2)
-    
+
+def largestDevation(nums):
+    lg = 0
+    sgn = 0
+    for num in nums:
+        if abs(num) > lg:
+            lg = abs(num)
+            sgn = sign(num)
+    return lg*sgn
+
 def applyBoundaries():
     # reflecting wall boundary conditions everywhere
     phi[0:N+1,0]    = phi[0:N+1,1]
@@ -134,21 +161,25 @@ def applyBoundaries():
     for i in range(1,N):
         for j in range(1,N):
             if bounds[i,j] == 1.0:
-                # get max phi from all adjacent cells that are not bounds
-                left = (1.0-bounds[i-1,j])*phi[i-1,j]
-                right = (1.0-bounds[i+1,j])*phi[i+1,j]
-                up = (1.0-bounds[i,j+1])*phi[i,j+1]
-                down = (1.0-bounds[i,j-1])*phi[i,j-1]
-                phimax = max(max(left,right),max(up,down))
+                # get average phi from all adjacent cells that are not bounds
+                lb = (1.0-bounds[i-1,j])
+                rb = (1.0-bounds[i+1,j])
+                ub = (1.0-bounds[i,j+1])
+                db = (1.0-bounds[i,j-1])
+                left    = lb*phi[i-1,j]
+                right   = rb*phi[i+1,j]
+                up      = ub*phi[i,j+1]
+                down    = db*phi[i,j-1]
+                nums = np.asarray([left,right,up,down])
+                phimax = max(nums.min(),nums.max(),key=abs)
                 phi[i,j] = phimax
 
 box1 = box((0.2,0.2),(0.8,0.8))
 box1.addBounds()
-box2 = box((0.25,0.25),(0.75,0.75))
-box2.removeBounds()
-box3 = box((0.2,0.45),(0.25,0.55))
+circle1 = circle((0.5,0.5),0.2)
+circle1.removeBounds()
+box3 = box((0.2,0.45),(0.5,0.55))
 box3.removeBounds()
-print(bounds)
 
 #init()
     
@@ -162,6 +193,7 @@ while cycle < finalCycle and t < tgoal:
     # compute phi
     phi = phi + dt*xi
 
+    # apply any boundaries you have
     applyBoundaries()
 
     # source in the middle
